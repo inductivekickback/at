@@ -7,37 +7,38 @@ NOTE:   Commands are NOT expected to end in <CR><LF> or a NULL.
 
 See https://infocenter.nordicsemi.com/pdf/nrf91_at_commands_v0.7.pdf for more information.
 
-Most AT commands are represented by a single Python dictionary with 'cmd', 'type', and
-'params' keys. The 'cmd' value is arbitrary. The 'type' value can be 'SET', 'READ', or 'TEST'.
-The 'params' value is a list of Python values of type None, int, str, or (single-nested) lists.
+Most AT commands are represented by a single Python dictionary with 'cmd', 'type', and 'params'
+keys. The 'cmd' value is arbitrary but always starts with '+' or '%' with the nRF91. The 'type'
+value can be 'SET', 'READ', or 'TEST'. The 'params' value is a list of Python values of type
+None, int, str, or (single-nested) lists.
 
-A few commands use a primary command (e.g. to provide authenticatication)
-followed by one or more "concatenated" commands that are sent as part of a single string.
-These commands are separated by the ';' character.
+A few command strings use a primary command (e.g. %XSUDO to provide authenticatication) followed
+by one or more "concatenated" commands that are sent as part of a single string. These commands are
+separated by the ';' character.
 
-Example command string:     'AT+CEMODE=0'
-Corresponding dictionary:   {'cmd':'+CEMODE', 'type':'SET', 'params':[0]}
+Command string: 'AT+CEMODE=0'
+Dictionary:     {'cmd':'+CEMODE', 'type':'SET', 'params':[0]}
 
-Example command string:     'AT%FOO=7,"c2lnbmF0dXJl";+BAR=(1,2,3)'
-Corresponding dictionary:   [{'cmd':'%FOO',
-                              'type':'SET',
-                              'params':[7, "c2lnbmF0dXJl"]},
-                             {'cmd':'+BAR',
-                              'type':'SET',
-                              'params':[[1, 2, 3]]}]
+Command string: 'AT%FOO=7,"c2lnbmF0dXJl";+BAR=(1,2,3)'
+Dictionary:     [{'cmd':'%FOO',
+                  'type':'SET',
+                  'params':[7, "c2lnbmF0dXJl"]},
+                 {'cmd':'+BAR',
+                  'type':'SET',
+                  'params':[[1, 2, 3]]}]
 
-Responses strings are similar to commands use the same 'params' key and foramt. However,
+Responses strings are similar to commands and use the same 'params' key and format. However,
 responses have a 'response' key instead of a 'cmd' key, the 'type' key is set to 'RESPONSE',
-an 'error' key is set to True or False.
+and an 'error' key is set to True or False.
 
-Example response string:    'OK'
-Corresponding dictionary:   {'response':'OK', 'type':'RESPONSE', 'error':False, 'params':[]})
+Response string: 'OK'
+Dictionary:      {'response':'OK', 'type':'RESPONSE', 'error':False, 'params':[]})
 
-Example response string:    '+CMS ERROR: 128'
-Corresponding dictionary:   {'response':'+CMS ERROR',
-                             'type':'RESPONSE',
-                             'error':True,
-                             'params':[128]}
+Response string: '+CMS ERROR: 128'
+Dictionary:      {'response':'+CMS ERROR',
+                  'type':'RESPONSE',
+                  'error':True,
+                  'params':[128]}
 
 The 'test/tests.py' script contains several example strings and their dictionary equivalents.
 """
