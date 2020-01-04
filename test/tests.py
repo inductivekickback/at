@@ -34,7 +34,9 @@ class TestATParsing(unittest.TestCase):
                  ('AT%FOO=7,"c2lnbmF0dXJl";+BAR=(1,2,3)',
                   [{'cmd':'%FOO', 'type':'SET', 'params':[7, "c2lnbmF0dXJl"]},
                    {'cmd':'+BAR', 'type':'SET', 'params':[[1, 2, 3]]}])]
-    TEST_RSPS = [('OK',
+    TEST_RSPS = [('ERROR',
+                  {'response':'ERROR', 'type':'RESPONSE', 'error':True, 'params':[]}),
+                 ('OK',
                   {'response':'OK', 'type':'RESPONSE', 'error':False, 'params':[]}),
                  ('+CME ERROR: 513',
                   {'response':'+CME ERROR',

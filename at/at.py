@@ -154,6 +154,13 @@ def parse_string(cmd_str):
                 AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
                 AT_ERROR_KEY:False,
                 AT_PARAMS_KEY:[]}
+    elif temp_cmd_str.startswith(AT_RSP_ERROR):
+        if len(temp_cmd_str) != len(AT_RSP_ERROR):
+            raise ATError('Unexpected trailing data after ERROR')
+        return {AT_RESPONSE_KEY:AT_RSP_ERROR,
+                AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+                AT_ERROR_KEY:True,
+                AT_PARAMS_KEY:[]}
     elif temp_cmd_str.startswith(AT_STD_PREFX) or temp_cmd_str.startswith(AT_PROP_PREFX):
         # Response starting with '+<CMD>: <params>' or '+<CMD> ERROR: <params>'
         response, params = cmd_str.split(AT_RSP_SEP)
