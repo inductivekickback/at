@@ -16,6 +16,8 @@ $ python3
 ...
 >>> import at
 >>> soc = at.SoC("/dev/ttyACM0")
+>>> soc.get_manufacturer_id()
+'Nordic Semiconductor ASA'
 >>> soc.get_functional_mode()
 0
 >>> soc.set_functional_mode(4)
