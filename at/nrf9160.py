@@ -173,4 +173,7 @@ class SoC():
         for line in response:
             if line[at.AT_RESPONSE_KEY] is None:
                 credential.append(line[at.AT_PARAMS_KEY][0])
-        return "".join(credential)
+        credential = "".join(credential)
+        if cred_type != CRED_TYPE_ROOT_CA:
+            credential = credential.strip()
+        return credential
