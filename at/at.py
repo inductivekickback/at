@@ -71,6 +71,8 @@ AT_RSP_ERROR = 'ERROR'
 AT_STD_PREFX = '+'
 AT_PROP_PREFX = '%'
 
+RESPONSE_STR_DANGLING_QUOTE = '"\r\n'
+
 
 class ATError(Exception):
     """AT exception class, inherits from the built-in Exception class."""
@@ -146,6 +148,7 @@ def _encode_params(params_seq):
 
 def parse_string(cmd_str):
     """Return a list of dicts specifying the command."""
+    print("Cmd: '{!r}'".format(cmd_str))
     if not cmd_str:
         raise ATError('No str to parse.')
     temp_cmd_str = cmd_str.strip().upper()
@@ -197,9 +200,12 @@ def parse_string(cmd_str):
         else:
             return result
     else:
-        # Cert responses end with a line containing a single ".
         if cmd_str.strip() == AT_CMD_STRING_IDENT:
+            # Cert responses end with a line containing a single ".
             cmd_str = ''
+        elif cmd_str.endswith(RESPONSE_STR_DANGLING_QUOTE):
+            # It's also possible for data strings to end.
+            cmd_str = cmd_str.strip(RESPONSE_STR_DANGLING_QUOTE)
         return{AT_RESPONSE_KEY:None,
                AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
                AT_ERROR_KEY:False,

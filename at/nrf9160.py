@@ -174,3 +174,38 @@ class SoC():
             if line[at.AT_RESPONSE_KEY] is None:
                 credential.append(line[at.AT_PARAMS_KEY][0])
         return "".join(credential).strip()
+
+    def write_credential(self, sec_tag, cred_type, content, passwd=None):
+        """Use %CMNG to read a credential. The sec_tag, cred_type, and content parameters must
+        be specified.
+        """
+        command = '%CMNG'
+        if cred_type == CRED_TYPE_PUBLIC_KEY:
+            raise SoCError('Public keys can only be deleted.')
+        if passwd is None:
+            if cred_type == CRED_TYPE_CLIENT_PRIVATE_KEY:
+                raise SoCError('passwd must be provided when writing encrypted private key.')
+        elif cred_type != CRED_TYPE_CLIENT_PRIVATE_KEY:
+            raise SoCError('passwd is not used unless writing encrypted private key.')
+        if self.get_functional_mode() == CFUN_MODE_NORMAL:
+            raise SoCError('Writing credentials is not possible while modem is active.')
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[OPCODE_WRITE, sec_tag, cred_type, content, passwd]}
+        result, _ = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} write failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+
+    def delete_credential(self, sec_tag, cred_type):
+        """Use %CMNG to delete a credential. The sec_tag and cred_type parameters must
+        be specified.
+        """
+        command = '%CMNG'
+        if self.get_functional_mode() == CFUN_MODE_NORMAL:
+            raise SoCError('Deleting credentials is not possible while modem is active.')
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[OPCODE_DELETE, sec_tag, cred_type]}
+        result, _ = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} delete failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
