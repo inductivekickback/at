@@ -1,17 +1,6 @@
 """
-The purpose of this module is to allow a program to have a "chat script" experience
-with the nRF91 running an AT client.
-
-
-Every AT command should end with a final status of OK or an ERROR variant.
-Some AT commands also include intermediate data that should be collected while waiting.
-Some AT commands can be canceled by sending more characters.
-Commands may take an arbitrary amount of time to finish.
-Serial port thread should be cancelable.
-
-? Use regexp to define responses?
-
-!Start by just waiting for an OK or ERROR and collecting the responses?
+The purpose of this module is to handle sending commands and receiving responses from
+a serial port in a separate thread.
 """
 import threading
 import queue
