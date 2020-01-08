@@ -1,7 +1,25 @@
 AT commands can be used for everything from managing certificates to querying network status on Nordic's nRF91 series. The purpose of this library is to make it a little easier to interact with the nRF91 from Python. Nordic's AT commands are documented [here](https://infocenter.nordicsemi.com/pdf/nrf91_at_commands_v0.7.pdf).
 
 ### Requirements
-No imports, just Python3.
+The only real dependency is pyserial. It can be installed from the command line using pip:
+```
+$ cd at
+$ pip3 install --user -r requirements.txt
+```
+
+### Usage
+There is not currently a command line interface but it can be used from the REPL:
+
+```
+$ cd at
+$ python3
+...
+>>> import at
+>>> soc = at.SoC("/dev/ttyACM0")
+>>> soc.list_credentials()
+[[51966, 3, '0303030303030303030303030303030303030303030303030303030303030303'], [51966, 4, '0404040404040404040404040404040404040404040404040404040404040404'], [16842753, 0, '0000000000000000000000000000000000000000000000000000000000000000']]
+>>> soc.close()
+```
 
 ### About
 Most AT commands are represented by a single Python dictionary with 'cmd', 'type', and 'params' keys. The 'cmd' value is arbitrary but always starts with '+' or '%' with the nRF91. The 'type' value can be 'SET', 'READ', or 'TEST'. The 'params' value is a list of Python values of type None, int, str, or (single-nested) lists.
