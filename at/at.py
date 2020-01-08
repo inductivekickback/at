@@ -204,7 +204,7 @@ def parse_string(cmd_str):
             # Cert responses end with a line containing a single ".
             cmd_str = ''
         elif cmd_str.endswith(RESPONSE_STR_DANGLING_QUOTE):
-            # It's also possible for data strings to end.
+            # It's also possible for multi-line response strings to end with an orphan ".
             cmd_str = cmd_str.strip(RESPONSE_STR_DANGLING_QUOTE)
         return{AT_RESPONSE_KEY:None,
                AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
