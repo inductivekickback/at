@@ -58,6 +58,8 @@ class TestATParsing(unittest.TestCase):
                  ('%FOO: ("A", "B", 10)',
                   {'response':'%FOO',
                     'type':'RESPONSE', 'error':False, 'params':[['A', 'B', 10]]}),
+                 ('Manufacturer',
+                  {'type':'RESPONSE', 'response':None, 'error':False, 'params':['Manufacturer']}),
                  ('%CMNG: 16842753,0,"000000000000000000000000000000000' +
                   '0000000000000000000000000000000"',
                   {'response':'%CMNG',

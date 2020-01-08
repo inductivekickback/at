@@ -54,13 +54,24 @@ class SoC():
         if not self._chat.is_closed():
             self._chat.close()
 
+    def get_manufacturer_id(self):
+        """Uses the +CGMI command to read the manufacturer identification as a string."""
+        command = '+CGMI'
+        cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
+        result, response = self._chat.send_cmd(cmd)
+        if len(response) != 1:
+            raise SoCError('Unexpected response to {}.'.format(command))
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+        return response[0][at.AT_PARAMS_KEY][0].rstrip()
+
     def get_functional_mode(self):
         """Uses the +CFUN command to get the functional mode and returns it as an int."""
         command = '+CFUN'
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
-            raise SoCError('Unexpected response to +CFUN.')
+            raise SoCError('Unexpected response to {}.'.format(command))
         if result[at.AT_ERROR_KEY]:
             raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
         return response[0][at.AT_PARAMS_KEY][0]

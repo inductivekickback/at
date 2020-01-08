@@ -187,9 +187,15 @@ def parse_string(cmd_str):
         result = []
         stmts = cmd_str.split(AT_PARAM_CONCAT_SEP)
         for stmt in stmts:
-            cmd, params = stmt.split(AT_CMD_SET_IDENT)
-            result.append({AT_CMD_KEY:cmd.lstrip(AT_CMD_PREFIX),
-                           AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:_parse_params(params)})
+            if AT_CMD_SET_IDENT in stmt:
+                cmd, params = stmt.split(AT_CMD_SET_IDENT)
+                result.append({AT_CMD_KEY:cmd.lstrip(AT_CMD_PREFIX),
+                               AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:_parse_params(params)})
+            else:
+                result.append({AT_RESPONSE_KEY:None,
+                               AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+                               AT_ERROR_KEY:False,
+                               AT_PARAMS_KEY:[stmt]})
         if len(result) == 1:
             return result[0]
         else:
@@ -205,9 +211,10 @@ def encode_command(cmd_dicts, result_strs=None):
 
     result_strs.append(cmd_dicts[0][AT_CMD_KEY])
     cmd_type = cmd_dicts[0][AT_TYPE_KEY]
-    if  cmd_type == AT_TYPE_VALUE_SET:
-        result_strs.append(AT_CMD_SET_IDENT)
-        result_strs.append(_encode_params(cmd_dicts[0][AT_PARAMS_KEY]))
+    if cmd_type == AT_TYPE_VALUE_SET:
+        if cmd_dicts[0].get(AT_PARAMS_KEY):
+            result_strs.append(AT_CMD_SET_IDENT)
+            result_strs.append(_encode_params(cmd_dicts[0][AT_PARAMS_KEY]))
     elif cmd_type == AT_TYPE_VALUE_READ:
         result_strs.append(AT_CMD_READ_IDENT)
     elif cmd_type == AT_TYPE_VALUE_TEST:
