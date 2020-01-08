@@ -148,7 +148,6 @@ def _encode_params(params_seq):
 
 def parse_string(cmd_str):
     """Return a list of dicts specifying the command."""
-    print("Cmd: '{!r}'".format(cmd_str))
     if not cmd_str:
         raise ATError('No str to parse.')
     temp_cmd_str = cmd_str.strip().upper()
