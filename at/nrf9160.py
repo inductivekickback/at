@@ -56,17 +56,18 @@ class SoC():
 
     def get_functional_mode(self):
         """Uses the +CFUN command to get the functional mode and returns it as an int."""
-        cmd = {at.AT_CMD_KEY:'+CFUN', at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
+        command = '+CFUN'
+        cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
             raise SoCError('Unexpected response to +CFUN.')
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('Failed to read +CFUN.')
+            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
         return response[0][at.AT_PARAMS_KEY][0]
 
     def set_functional_mode(self, mode):
         """
-        Uses the +CFUN command to set the functional mode and returns 'OK' or an error string.
+        Uses the +CFUN command to set the functional mode.
 
         NOTE:   An ERROR response will be returned when changing to NORMAL mode
                 if the SIM card has failed.
@@ -74,11 +75,13 @@ class SoC():
         NOTE:   A power cycle is required after changing to POWER_OFF mode (and no
                 further commands should be sent before that happens).
         """
-        cmd = {at.AT_CMD_KEY:'+CFUN',
+        command = '+CFUN'
+        cmd = {at.AT_CMD_KEY:command,
                at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
                at.AT_PARAMS_KEY:[mode]}
         result, _ = self._chat.send_cmd(cmd)
-        return result[at.AT_RESPONSE_KEY]
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
 
     def list_credentials(self, sec_tag=None, cred_type=None):
         """Use %CMNG to return a list of credentials. Each credential is in the form [sec_tag,
