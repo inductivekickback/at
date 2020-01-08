@@ -80,7 +80,7 @@ class Chat():
         module. Any responses that arrive before the OK or ERROR will be returned
         along with the final response as part of a tuple: (result, [responses]).
         """
-        result = []
+        responses = []
         if self._closed:
             raise ChatError("Port is closed.")
         if isinstance(cmd, str):
@@ -97,9 +97,9 @@ class Chat():
                 res = at.parse_string(line)
                 if res[at.AT_TYPE_KEY] == at.AT_TYPE_VALUE_RESPONSE:
                     if res[at.AT_RESPONSE_KEY] == at.AT_RSP_OK or res[at.AT_ERROR_KEY]:
-                        return (res, result)
+                        return (res, responses)
                     else:
-                        result.append(res)
+                        responses.append(res)
 
     def close(self):
         """Close the serial port."""
@@ -107,6 +107,10 @@ class Chat():
             raise ChatError("Port is already closed.")
         self._closed = True
         self._thread.close()
+
+    def is_closed(self):
+        """Return True if the thread was manually closed or closed due to an error."""
+        return self._closed
 
 
 class ChatThread(threading.Thread):

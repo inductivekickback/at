@@ -14,3 +14,4 @@ from at.at import (encode_command,
                   AT_RSP_ERROR)
 
 from at.chat import (Chat, ChatError)
+from at.nrf9160 import (SoC, SoCError)
