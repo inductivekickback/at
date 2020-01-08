@@ -1,7 +1,7 @@
 AT commands can be used for everything from managing certificates to querying network status on Nordic's nRF91 series. The purpose of this library is to make it a little easier to interact with the nRF91 from Python. Nordic's AT commands are documented [here](https://infocenter.nordicsemi.com/pdf/nrf91_at_commands_v0.7.pdf).
 
 ### Requirements
-The only real dependency is pyserial. It can be installed from the command line using pip:
+The pyserial module is used to talk to the serial port and pynrfjprog can be used to program the SoC. Requirements can be installed from the command line using pip:
 ```
 $ cd at
 $ pip3 install --user -r requirements.txt

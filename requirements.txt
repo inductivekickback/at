@@ -1,1 +1,2 @@
 pyserial>=3.4
+pynrfjprog >=10.5.0
