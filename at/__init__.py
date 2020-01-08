@@ -9,4 +9,7 @@ from at.at import (encode_command,
                    AT_TYPE_VALUE_SET,
                    AT_TYPE_VALUE_READ,
                    AT_TYPE_VALUE_TEST,
-                   AT_TYPE_VALUE_RESPONSE)
+                   AT_TYPE_VALUE_RESPONSE,
+                   AT_RSP_OK,
+                  AT_RSP_ERROR)
+import at.chat

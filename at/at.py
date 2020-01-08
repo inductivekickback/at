@@ -1,7 +1,7 @@
 """
 Basic AT command parsing/encoding library compatible with Nordic's nRF91 series.
 
-NOTE:   Commands are NOT expected to end in <CR><LF> or a NULL.
+NOTE:   Commands are NOT expected to end in <CR><LF> (0xOD, 0xOA) or a NULL.
         Concatenated commands are separated by a ';' (and only first command has 'AT' prefix).
         Custom command prefixes (i.e. "AT#<CMD>") are not used.
 
@@ -146,6 +146,8 @@ def _encode_params(params_seq):
 
 def parse_string(cmd_str):
     """Return a list of dicts specifying the command."""
+    if not cmd_str:
+        raise ATError('No str to parse.')
     temp_cmd_str = cmd_str.strip().upper()
     if temp_cmd_str.startswith(AT_RSP_OK):
         if len(temp_cmd_str) != len(AT_RSP_OK):
