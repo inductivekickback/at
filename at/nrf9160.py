@@ -1,6 +1,8 @@
 """
 The purpose of this module is to handle sending commands and receiving responses from
 a serial port in a separate thread.
+
+NOTE: The at_client firmware needs a few seconds to start up before the AT interface is useful.
 """
 import at
 
@@ -52,7 +54,7 @@ class SoC():
         if not self._chat.is_closed():
             self._chat.close()
 
-    def functional_mode_get(self):
+    def get_functional_mode(self):
         """Uses the +CFUN command to get the functional mode and returns it as an int."""
         cmd = {at.AT_CMD_KEY:'+CFUN', at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
         result, response = self._chat.send_cmd(cmd)
@@ -62,7 +64,7 @@ class SoC():
             raise SoCError('Failed to read +CFUN.')
         return response[0][at.AT_PARAMS_KEY][0]
 
-    def functional_mode_set(self, mode):
+    def set_functional_mode(self, mode):
         """
         Uses the +CFUN command to set the functional mode and returns 'OK' or an error string.
 
@@ -78,7 +80,7 @@ class SoC():
         result, _ = self._chat.send_cmd(cmd)
         return result[at.AT_RESPONSE_KEY]
 
-    def credentials_list(self, sec_tag=None, cred_type=None):
+    def list_credentials(self, sec_tag=None, cred_type=None):
         """Use %CMNG to return a list of credentials. Each credential is in the form [sec_tag,
         cred_type, content]. Either of the sec_tag and cred_type parameters can be None.
         Returns [] if there were no matching credentials.
@@ -89,6 +91,26 @@ class SoC():
         cmd = {at.AT_CMD_KEY:command,
                at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
                at.AT_PARAMS_KEY:[OPCODE_LIST, sec_tag, cred_type, None, None]}
+        result, response = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+        return [x[at.AT_PARAMS_KEY] for x in response if x[at.AT_RESPONSE_KEY] == command]
+
+    def read_credentials(self, sec_tag, cred_type):
+        """Use %CMNG to read a list of credentials. Each credential is in the form [sec_tag,
+        cred_type, content]. Either of the sec_tag and cred_type parameters can be None.
+        Returns [] if there were no matching credentials.
+        """
+        command = '%CMNG'
+        if cred_type == CRED_TYPE_PUBLIC_KEY:
+            raise SoCError('Public keys can only be deleted.')
+        if (cred_type == CRED_TYPE_CLIENT_CERT or
+                cred_type == CRED_TYPE_CLIENT_PRIVATE_KEY or
+                cred_type == CRED_TYPE_PSK):
+            raise SoCError('Reading of cred_types 1, 2, and 3 is not supported.')
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[OPCODE_READ, sec_tag, cred_type]}
         result, response = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
             raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
