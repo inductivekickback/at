@@ -100,7 +100,10 @@ class Chat():
             cmd_str = at.encode_command(cmd)
             self._write(cmd_str)
         while True:
-            line = self._read(True, timeout_s)
+            try:
+                line = self._read(True, timeout_s)
+            except queue.Empty:
+                raise ChatError('Command timed out ({} seconds).'.format(timeout_s))
             if line:
                 res = at.parse_string(line)
                 if res[at.AT_TYPE_KEY] == at.AT_TYPE_VALUE_RESPONSE:
@@ -108,8 +111,6 @@ class Chat():
                         return (res, result)
                     else:
                         result.append(res)
-            else:
-                raise ChatError('Command timed out ({} seconds).'.format(timeout_s))
 
     def close(self):
         """Close the serial port."""
@@ -155,20 +156,21 @@ class ChatThread(threading.Thread):
         """Interact with the serial port until the semaphore is set.
         NOTE: Automatically decodes received bytes into strings.
         """
+        ser = None
         try:
-            with serial.Serial(self._port, self._baudrate, timeout=self.DEFAULT_TIMEOUT_S) as ser:
-                while not self._stop.is_set():
-                    while not self._tx_q.empty():
-                        tx_item = self._tx_q.get()
-                        ser.write(self._term_and_encode(tx_item))
-                    line = ser.readline()
-                    if line and line != self.NULL_BYTE:
-                        self._rx_q.put(line.decode())
-        except FileNotFoundError as err:
-            self._rx_q.put(err)
+            ser = serial.Serial(self._port, self._baudrate, timeout=self.DEFAULT_TIMEOUT_S)
+            while not self._stop.is_set():
+                while not self._tx_q.empty():
+                    tx_item = self._tx_q.get()
+                    ser.write(self._term_and_encode(tx_item))
+                line = ser.readline()
+                if line and line != self.NULL_BYTE:
+                    self._rx_q.put(line.decode())
         except serial.SerialException as err:
             self._rx_q.put(err)
         finally:
+            if ser:
+                ser.close()
             self.close()
 
     def close(self):

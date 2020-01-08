@@ -12,4 +12,5 @@ from at.at import (encode_command,
                    AT_TYPE_VALUE_RESPONSE,
                    AT_RSP_OK,
                   AT_RSP_ERROR)
-import at.chat
+
+from at.chat import (Chat, ChatError)
