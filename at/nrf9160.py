@@ -12,6 +12,11 @@ CFUN_MODE_NORMAL = 1
 CFUN_MODE_OFFLINE = 4 # AKA Flight mode
 CFUN_MODE_OFFLINE_WO_SHUTTING_DOWN_UICC = 44
 
+CGSN_TYPE_SN = 0
+CGSN_TYPE_IMEI = 1
+CGSN_TYPE_IMEISV = 2
+CGSN_TYPE_SVN = 3
+
 OPCODE_WRITE = 0
 OPCODE_LIST = 1
 OPCODE_READ = 2
@@ -55,7 +60,7 @@ class SoC():
             self._chat.close()
 
     def get_manufacturer_id(self):
-        """Uses the +CGMI command to read the manufacturer identification as a string."""
+        """Use the +CGMI command to read the manufacturer identification as a string."""
         command = '+CGMI'
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
         result, response = self._chat.send_cmd(cmd)
@@ -65,8 +70,37 @@ class SoC():
             raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
         return response[0][at.AT_PARAMS_KEY][0].rstrip()
 
+    def _cgsn(self, param):
+        """Use the +CGSN command to read several types of serial numbers."""
+        command = '+CGSN'
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[param]}
+        result, response = self._chat.send_cmd(cmd)
+        if len(response) != 1:
+            raise SoCError('Unexpected response to {}.'.format(command))
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+        return response[0][at.AT_PARAMS_KEY][0].rstrip()
+
+    def get_serial_number(self):
+        """Use the +CGSN command to read the serial number."""
+        return self._cgsn(CGSN_TYPE_SN)
+
+    def get_imei(self):
+        """Use the +CGSN command to read the IMEI."""
+        return self._cgsn(CGSN_TYPE_IMEI)
+
+    def get_imeisv(self):
+        """Use the +CGSN command to read the IMEISV."""
+        return self._cgsn(CGSN_TYPE_IMEISV)
+
+    def get_svn(self):
+        """Use the +CGSN command to read the SVN."""
+        return self._cgsn(CGSN_TYPE_SVN)
+
     def get_functional_mode(self):
-        """Uses the +CFUN command to get the functional mode and returns it as an int."""
+        """Use the +CFUN command to get the functional mode and returns it as an int."""
         command = '+CFUN'
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
         result, response = self._chat.send_cmd(cmd)
@@ -78,7 +112,7 @@ class SoC():
 
     def set_functional_mode(self, mode):
         """
-        Uses the +CFUN command to set the functional mode.
+        Use the +CFUN command to set the functional mode.
 
         NOTE:   An ERROR response will be returned when changing to NORMAL mode
                 if the SIM card has failed.
