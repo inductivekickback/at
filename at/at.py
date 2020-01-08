@@ -89,7 +89,7 @@ def _parse_param(param_str):
     if not param_str:
         return None
     elif param_str[0] == AT_CMD_STRING_IDENT:
-        return param_str.strip('"')
+        return param_str.strip(AT_CMD_STRING_IDENT)
     else:
         return int(param_str)
 
@@ -183,7 +183,8 @@ def parse_string(cmd_str):
     elif cmd_str.endswith(AT_CMD_READ_IDENT):
         return {AT_CMD_KEY:cmd_str.upper().lstrip(AT_CMD_PREFIX).rstrip(AT_CMD_TEST_IDENT),
                 AT_TYPE_KEY:AT_TYPE_VALUE_READ, AT_PARAMS_KEY:[]}
-    else:
+    elif temp_cmd_str.startswith(AT_CMD_PREFIX):
+        # Could be a regular or compound command.
         result = []
         stmts = cmd_str.split(AT_PARAM_CONCAT_SEP)
         for stmt in stmts:
@@ -191,15 +192,18 @@ def parse_string(cmd_str):
                 cmd, params = stmt.split(AT_CMD_SET_IDENT)
                 result.append({AT_CMD_KEY:cmd.lstrip(AT_CMD_PREFIX),
                                AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:_parse_params(params)})
-            else:
-                result.append({AT_RESPONSE_KEY:None,
-                               AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
-                               AT_ERROR_KEY:False,
-                               AT_PARAMS_KEY:[stmt]})
         if len(result) == 1:
             return result[0]
         else:
             return result
+    else:
+        # Cert responses end with a line containing a single ".
+        if cmd_str.strip() == AT_CMD_STRING_IDENT:
+            cmd_str = ''
+        return{AT_RESPONSE_KEY:None,
+               AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+               AT_ERROR_KEY:False,
+               AT_PARAMS_KEY:[cmd_str]}
 
 
 def encode_command(cmd_dicts, result_strs=None):

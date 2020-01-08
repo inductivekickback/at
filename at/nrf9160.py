@@ -110,10 +110,9 @@ class SoC():
             raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
         return [x[at.AT_PARAMS_KEY] for x in response if x[at.AT_RESPONSE_KEY] == command]
 
-    def read_credentials(self, sec_tag, cred_type):
-        """Use %CMNG to read a list of credentials. Each credential is in the form [sec_tag,
-        cred_type, content]. Either of the sec_tag and cred_type parameters can be None.
-        Returns [] if there were no matching credentials.
+    def read_credential(self, sec_tag, cred_type):
+        """Use %CMNG to read a credential. The sec_tag and cred_type parameters must
+        be specified. Returns [] if there were no matching credentials.
         """
         command = '%CMNG'
         if cred_type == CRED_TYPE_PUBLIC_KEY:
@@ -128,4 +127,16 @@ class SoC():
         result, response = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
             raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
-        return [x[at.AT_PARAMS_KEY] for x in response if x[at.AT_RESPONSE_KEY] == command]
+        credential = []
+        cmd_echo = response.pop(0)
+        if cmd_echo[at.AT_RESPONSE_KEY] != command:
+            raise SoCError('Failed to parse output of {} read.'.format(command))
+        verify_sec_tag, verify_cred_type, _, content = cmd_echo[at.AT_PARAMS_KEY]
+        if verify_sec_tag != sec_tag or verify_cred_type != cred_type:
+            raise SoCError('Failed to verify credential in output of {} read.'.format(command))
+        credential.append(content)
+        credential.append('\n')
+        for line in response:
+            if line[at.AT_RESPONSE_KEY] is None:
+                credential.append(line[at.AT_PARAMS_KEY][0])
+        return "".join(credential)
