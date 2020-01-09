@@ -1,27 +1,8 @@
 """
 Example command line executable for nRF91 credential management.
-
-Operations:
-    list    (--sec_tag and --cred_type optional)
-    write   (--sec_tag and --cred_type and content required)
-    delete  (--sec_tag and --cred_type required)
-    read    (--sec_tag and --cred_type required)
-    write PSK
-    write certs
-
-write PSK:
-    --psk           "FOOBAR"
-    --id            "nrf-foobar"
-    --sec_tag       1234
-
-write certs:
-    --CA_cert       path
-    --client_cert   path
-    --private_key   path
-    --passwd        "foobar"
-    --sec_tag       1234
 """
 import sys
+import os
 import argparse
 import time
 
@@ -30,7 +11,7 @@ from pynrfjprog import HighLevel
 
 
 FW_STARTUP_DELAY_S = 3
-PREBUILT_HEX_PATH = "hex/merged.hex"
+PREBUILT_HEX_PATH = os.path.sep.join(("hex", "merged.hex"))
 
 
 def _write_firmware(nrfjprog_probe, fw_hex):
@@ -85,8 +66,6 @@ def _add_and_parse_args():
 
     parser.add_argument('operation', choices=('list', 'read', 'write', 'delete'),
                         help="operation", type=str)
-    parser.add_argument('suboperation', choices=('PSK', 'certs'), nargs='?',
-                        help="optional suboperation when writing", type=str)
     parser.add_argument('port', metavar='SERIAL_PORT_DEVICE',
                         help="serial port device to use for AT commands", type=str)
     parser.add_argument("--sec_tag", type=int, metavar="SECURITY_TAG",
@@ -95,16 +74,8 @@ def _add_and_parse_args():
                         help="specify cred_type [0, 5]")
     parser.add_argument("--passwd", type=str, default=None, metavar="PRIVATE_KEY_PASSWD",
                         help="specify private key password")
-    parser.add_argument("--psk", type=str, metavar="PRE_SHARED_KEY",
-                        help="preshared key for PSK")
-    parser.add_argument("--psk_id", type=str, metavar="PSK_IDENTITY",
-                        help="preshared key identity")
-    parser.add_argument("--private_key", type=str, metavar="PATH_TO_PRIVATE_KEY",
-                        help="read private key from file")
-    parser.add_argument("--ca_cert", type=str, metavar="PATH_TO_CA_CERT",
-                        help="read CA certificate from file")
-    parser.add_argument("--client_cert", type=str, metavar="PATH_TO_CLIENT_CERT",
-                        help="read client certificate from file")
+    parser.add_argument("-o", "--out_file", type=str, metavar="PATH_TO_OUT_FILE",
+                        help="write output from read operation to file instead of stdout.")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--content", type=str, metavar="CONTENT",
                        help="specify content (i.e. key material)")
@@ -124,41 +95,17 @@ def _add_and_parse_args():
         parser.print_usage()
         print("error: sec_tag required for all operations except listing")
         sys.exit(-1)
-    if args.cred_type is None and args.operation != 'list' and not args.suboperation:
+    if args.cred_type is None and args.operation != 'list':
         parser.print_usage()
         print("error: cred_type required for all operations except listing")
         sys.exit(-1)
-    if args.suboperation:
-        if args.operation != 'write':
-            parser.print_usage()
-            print("error: '{}' suboperation only allowed when writing".format(args.suboperation))
-            sys.exit(-1)
-        if args.content or args.content_path or args.cred_type:
-            parser.print_usage()
-            print("error: invalid argument for suboperation")
-            sys.exit(-1)
-        if args.suboperation == 'PSK':
-            if not args.psk or not args.psk_id:
-                parser.print_usage()
-                print("error: PSK suboperation requires both --psk and --psk_id arguments")
-                sys.exit(-1)
-            if args.passwd or args.ca_cert or args.private_key or args.client_cert:
-                parser.print_usage()
-                print("error: invalid argument for PSK suboperation")
-                sys.exit(-1)
-        else:
-            if not args.passwd or not args.ca_cert or not args.private_key or not args.client_cert:
-                parser.print_usage()
-                print("error: certs suboperation requires --passwd, --ca_cert, " +
-                      "--private_key, and --client_cert.")
-                sys.exit(-1)
-            if args.psk or args.psk_id:
-                parser.print_usage()
-                print("error: invalid argument for certs suboperation")
-                sys.exit(-1)
-    elif args.operation == 'write' and not (args.content or args.content_path):
+    if args.operation == 'write' and not (args.content or args.content_path):
         parser.print_usage()
         print("error: content or content_path is required when writing")
+        sys.exit(-1)
+    if args.out_file and args.operation != 'read':
+        parser.print_usage()
+        print("error: out_file is only available when reading credentials")
         sys.exit(-1)
     if args.serial_number and not (args.program_hex or args.program_app):
         parser.print_usage()
@@ -179,11 +126,8 @@ def _communicate(args):
     soc = None
     try:
         soc = at.SoC(args.port)
-
-        if args.power_off:
-            if args.operation == 'delete' or args.operation == 'write':
-                _power_off_if_necessary(soc)
-
+        if args.power_off and (args.operation == 'delete' or args.operation == 'write'):
+            _power_off_if_necessary(soc)
         if args.operation == 'list':
             result = soc.list_credentials(args.sec_tag, args.cred_type)
             if len(result) == 1:
@@ -192,26 +136,27 @@ def _communicate(args):
                 print(result)
         elif args.operation == 'read':
             result = soc.read_credential(args.sec_tag, args.cred_type)
-            print('{!r}'.format(result))
+            if args.out_file:
+                with open(args.out_file, 'wb') as out_file:
+                    out_file.write(result.encode())
+            else:
+                print(result)
         elif args.operation == 'delete':
             soc.delete_credential(args.sec_tag, args.cred_type)
         else:
-            if args.suboperation:
-                pass
+            content = None
+            if args.content_path:
+                content = _read_cert_file(args.content_path)
             else:
-                content = None
-                if args.content_path:
-                    content = _read_cert_file(args.content_path)
-                else:
-                    content = args.content
-                soc.write_credential(args.sec_tag, args.cred_type, content, args.passwd)
+                content = args.content
+            soc.write_credential(args.sec_tag, args.cred_type, content, args.passwd)
     finally:
         if soc:
             soc.close()
 
 
 def _main():
-    """Parses arguments for the PPK CLI."""
+    """Parses arguments for the CLI."""
     args = _add_and_parse_args()
     nrfjprog_api = None
     nrfjprog_probe = None
