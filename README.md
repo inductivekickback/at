@@ -9,7 +9,6 @@ $ pip3 install --user -r requirements.txt
 
 ### Usage
 The SoC module can be used from the REPL or a custom script:
-
 ```
 $ cd at
 $ python3
@@ -40,6 +39,71 @@ Traceback (most recent call last):
     raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
 at.nrf9160.SoCError: SoC error: %CMNG list failed: ERROR.
 >>> soc.close()
+```
+
+There is also a proof-of-concept command line interface. Features include the ability to automatically program a pre-built 'at_client' hex file onto the nRF91-DK before opening the serial port as well as programming an application hex file before shutting down.
+```
+$ cd at
+$ python3 cmng.py --help
+usage: cmng [-h] [--sec_tag SECURITY_TAG] [--cred_type CREDENTIAL_TYPE]
+            [--passwd PRIVATE_KEY_PASSWD] [--psk PRE_SHARED_KEY]
+            [--psk_id PSK_IDENTITY] [--private_key PATH_TO_PRIVATE_KEY]
+            [--ca_cert PATH_TO_CA_CERT] [--client_cert PATH_TO_CLIENT_CERT]
+            [--content CONTENT | --content_path PATH_TO_CONTENT]
+            [-s JLINK_SERIAL_NUMBER] [-x] [--program_app PATH_TO_APP_HEX_FILE]
+            [--power_off]
+            {list,read,write,delete} [{PSK,certs}] SERIAL_PORT_DEVICE
+
+A command line interface for managing nRF91 credentials.
+
+positional arguments:
+  {list,read,write,delete}
+                        operation
+  {PSK,certs}           optional suboperation when writing
+  SERIAL_PORT_DEVICE    serial port device to use for AT commands
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sec_tag SECURITY_TAG
+                        specify sec_tag [0, 2147483647]
+  --cred_type CREDENTIAL_TYPE
+                        specify cred_type [0, 5]
+  --passwd PRIVATE_KEY_PASSWD
+                        specify private key password
+  --psk PRE_SHARED_KEY  preshared key for PSK
+  --psk_id PSK_IDENTITY
+                        preshared key identity
+  --private_key PATH_TO_PRIVATE_KEY
+                        read private key from file
+  --ca_cert PATH_TO_CA_CERT
+                        read CA certificate from file
+  --client_cert PATH_TO_CLIENT_CERT
+                        read client certificate from file
+  --content CONTENT     specify content (i.e. key material)
+  --content_path PATH_TO_CONTENT
+                        read content (i.e. key material) from file
+  -s JLINK_SERIAL_NUMBER, --serial_number JLINK_SERIAL_NUMBER
+                        serial number of J-Link
+  -x, --program_hex     begin by writing prebuilt 'at_client' hex file to
+                        device
+  --program_app PATH_TO_APP_HEX_FILE
+                        program specified hex file to device before finishing
+  --power_off           put modem in CFUN_MODE_POWER_OFF if necessary
+
+WARNING: nrf_cloud relies on credentials with sec_tag 16842753.
+```
+The basic list, read, delete, and write functionality exists but is not thoroughly tested:
+```
+$ python3 ./cmng.py list /dev/ttyACM0 -x
+[]
+$ python3 ./cmng.py write /dev/ttyACM0 --sec_tag 16842753 --cred_type 0 --content_path ./nrf_cloud_ca_cert.crt
+$ python3 ./cmng.py list /dev/ttyACM0 
+[16842753, 0, '0000000000000000000000000000000000000000000000000000000000000000']
+$ python3 ./cmng.py read /dev/ttyACM0 --sec_tag 16842753 --cred_type 0
+'-----BEGIN CERTIFICATE-----\nMIIFXjCCB...NFu0Qg==\n-----END CERTIFICATE-----'
+$ python3 ./cmng.py delete /dev/ttyACM0 --sec_tag 16842753 --cred_type 0
+$ python3 ./cmng.py list /dev/ttyACM0 
+[]
 ```
 
 ### About
