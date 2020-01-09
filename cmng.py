@@ -24,38 +24,48 @@ write certs:
 import sys
 import os
 import argparse
+import time
 
-from at import at
-import pynrfjprog
-from pynrfjprog import API
+import at
+from pynrfjprog import HighLevel
 
 
-def _write_firmware(nrfjprog_api, fw_hex):
-    """Replaces the PPK's firmware."""
-    print("Writing firmware...", end='')
-    nrfjprog_api.erase_all()
-    for segment in fw_hex:
-        nrfjprog_api.write(segment.address, segment.data, True)
-    print("done")
+PREBUILT_HEX_PATH = "hex/merged.hex"
+
+
+def _write_firmware(nrfjprog_probe, fw_hex):
+    """Program and verify a hex file."""
+    nrfjprog_probe.program(fw_hex)
+    nrfjprog_probe.verify(fw_hex)
+    nrfjprog_probe.reset()
 
 
 def _close_and_exit(nrfjprog_api, status):
-    """"""
+    """Close the nrfjprog connection if necessary and exit."""
     if nrfjprog_api:
-        nrfjprog_api.disconnect_from_emu()
         nrfjprog_api.close()
     sys.exit(status)
 
 
-def _connect_to_emu(args):
-    """Connects to emulator and replaces the PPK firmware if necessary."""
-    nrfjprog_api = pynrfjprog.API.API('NRF91')
-    nrfjprog_api.open()
+def _connect_to_jlink(args):
+    """Connect to the debug probe."""
+    api = HighLevel.API()
+    api.open()
+    sn = api.get_connected_probes()
     if args.serial_number:
-        nrfjprog_api.connect_to_emu_with_snr(args.serial_number)
-    else:
-        nrfjprog_api.connect_to_emu_without_snr()
-    return nrfjprog_api
+        if args.serial_number in sn:
+            sn = [args.serial_number]
+        else:
+            print("error: serial_number not found ({})".format(args.serial_number))
+            _close_and_exit(api, -1)
+    if not sn:
+        print("error: no debug probes found")
+        _close_and_exit(api, -1)
+    if len(sn) > 1:
+        print("error: multiple debug probes found, use --serial_number")
+        _close_and_exit(api, -1)
+    probe = HighLevel.DebugProbe(api, sn[0], HighLevel.CoProcessor.CP_APPLICATION)
+    return (api, probe)
 
 
 def _add_and_parse_args():
@@ -89,12 +99,11 @@ def _add_and_parse_args():
                         help="put modem in CFUN_MODE_POWER_OFF if necessary")
 
     args = parser.parse_args()
-
-    if not args.sec_tag and args.operation != 'list':
+    if args.sec_tag is None and args.operation != 'list':
         parser.print_usage()
         print("error: sec_tag required for all operations except listing")
         sys.exit(-1)
-    if not args.cred_type and args.operation != 'list':
+    if args.cred_type is None and args.operation != 'list':
         parser.print_usage()
         print("error: cred_type required for all operations except listing")
         sys.exit(-1)
@@ -113,17 +122,51 @@ def _add_and_parse_args():
     return args
 
 
+def _communicate(args):
+    """Open the serial port and use the at module."""
+    soc = None
+    try:
+        soc = at.SoC(args.port)
+        if args.operation == 'list':
+            result = soc.list_credentials(args.sec_tag, args.cred_type)
+            if len(result) == 1:
+                print(result[0])
+            else:
+                print(result)
+        elif args.operation == 'read':
+            result = soc.read_credential(args.sec_tag, args.cred_type)
+            print(result)
+        elif args.operation == 'delete':
+            pass
+        else:
+            pass
+    finally:
+        if soc:
+            soc.close()
+
+
 def _main():
     """Parses arguments for the PPK CLI."""
     args = _add_and_parse_args()
     nrfjprog_api = None
+    nrfjprog_probe = None
     try:
+        if args.program_hex or args.program_app:
+            nrfjprog_api, nrfjprog_probe = _connect_to_jlink(args)
+
         if args.program_hex:
-            nrfjprog_api = _connect_to_emu(args)
-            # TODO: Program, reset, and wait.
-            _close_and_exit(nrfjprog_api, 0)
+            _write_firmware(nrfjprog_probe, PREBUILT_HEX_PATH)
+            # Allow the firmware to boot.
+            time.sleep(2)
+
+        _communicate(args)
+
+        if args.program_app:
+            _write_firmware(nrfjprog_probe, args.program_app)
+
+        _close_and_exit(nrfjprog_api, 0)
     except Exception as ex:
-        print("main.py: error: " + str(ex))
+        print("error: " + str(ex))
         _close_and_exit(nrfjprog_api, -1)
 
 
