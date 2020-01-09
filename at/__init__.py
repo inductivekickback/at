@@ -11,7 +11,30 @@ from at.at import (encode_command,
                    AT_TYPE_VALUE_TEST,
                    AT_TYPE_VALUE_RESPONSE,
                    AT_RSP_OK,
-                  AT_RSP_ERROR)
+                   AT_RSP_ERROR)
 
 from at.chat import (Chat, ChatError)
-from at.nrf9160 import (SoC, SoCError)
+from at.nrf9160 import (SoC,
+                        SoCError,
+                        CFUN_MODE_POWER_OFF,
+                        CFUN_MODE_NORMAL,
+                        CFUN_MODE_OFFLINE,
+                        CFUN_MODE_OFFLINE_WO_SHUTTING_DOWN_UICC,
+                        CGSN_TYPE_SN,
+                        CGSN_TYPE_IMEI,
+                        CGSN_TYPE_IMEISV,
+                        CGSN_TYPE_SVN,
+                        OPCODE_WRITE,
+                        OPCODE_LIST,
+                        OPCODE_READ,
+                        OPCODE_DELETE,
+                        CRED_TYPE_ROOT_CA,
+                        CRED_TYPE_CLIENT_CERT,
+                        CRED_TYPE_CLIENT_PRIVATE_KEY,
+                        CRED_TYPE_PSK,
+                        CRED_TYPE_PSK_IDENTITY,
+                        CRED_TYPE_PUBLIC_KEY,
+                        CME_ERROR_NOT_FOUND,
+                        CME_ERROR_NO_ACCESS,
+                        CME_ERROR_MEMORY_FULL,
+                        CME_ERROR_NOT_ALLOWED_IN_ACTIVE_STATE)
