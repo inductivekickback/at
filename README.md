@@ -106,7 +106,7 @@ $ python3 ./cmng.py list /dev/ttyACM0
 []
 ```
 ### Limitations
-The 'write PSK' and 'write certs' operations are incomplete.
+The 'write PSK' and 'write certs' convenience operations are incomplete.
 
 ### About
 Most AT commands are represented by a single Python dictionary with 'cmd', 'type', and 'params' keys. The 'cmd' value is arbitrary but always starts with '+' or '%' with the nRF91. The 'type' value can be 'SET', 'READ', or 'TEST'. The 'params' value is a list of Python values of type None, int, str, or (single-nested) lists.
