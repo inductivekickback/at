@@ -8,7 +8,7 @@ $ pip3 install --user -r requirements.txt
 ```
 
 ### Usage
-The SoC module can be used from the REPL or a custom script:
+The module can be used from the REPL or a custom script:
 ```
 $ cd at
 $ python3
