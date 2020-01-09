@@ -46,20 +46,17 @@ There is also a proof-of-concept command line interface for credential managemen
 $ cd at
 $ python3 cmng.py --help
 usage: cmng [-h] [--sec_tag SECURITY_TAG] [--cred_type CREDENTIAL_TYPE]
-            [--passwd PRIVATE_KEY_PASSWD] [--psk PRE_SHARED_KEY]
-            [--psk_id PSK_IDENTITY] [--private_key PATH_TO_PRIVATE_KEY]
-            [--ca_cert PATH_TO_CA_CERT] [--client_cert PATH_TO_CLIENT_CERT]
+            [--passwd PRIVATE_KEY_PASSWD] [-o PATH_TO_OUT_FILE]
             [--content CONTENT | --content_path PATH_TO_CONTENT]
             [-s JLINK_SERIAL_NUMBER] [-x] [--program_app PATH_TO_APP_HEX_FILE]
             [--power_off]
-            {list,read,write,delete} [{PSK,certs}] SERIAL_PORT_DEVICE
+            {list,read,write,delete} SERIAL_PORT_DEVICE
 
 A command line interface for managing nRF91 credentials.
 
 positional arguments:
   {list,read,write,delete}
                         operation
-  {PSK,certs}           optional suboperation when writing
   SERIAL_PORT_DEVICE    serial port device to use for AT commands
 
 optional arguments:
@@ -70,15 +67,9 @@ optional arguments:
                         specify cred_type [0, 5]
   --passwd PRIVATE_KEY_PASSWD
                         specify private key password
-  --psk PRE_SHARED_KEY  preshared key for PSK
-  --psk_id PSK_IDENTITY
-                        preshared key identity
-  --private_key PATH_TO_PRIVATE_KEY
-                        read private key from file
-  --ca_cert PATH_TO_CA_CERT
-                        read CA certificate from file
-  --client_cert PATH_TO_CLIENT_CERT
-                        read client certificate from file
+  -o PATH_TO_OUT_FILE, --out_file PATH_TO_OUT_FILE
+                        write output from read operation to file instead of
+                        stdout.
   --content CONTENT     specify content (i.e. key material)
   --content_path PATH_TO_CONTENT
                         read content (i.e. key material) from file
@@ -105,8 +96,6 @@ $ python3 ./cmng.py delete /dev/ttyACM0 --sec_tag 16842753 --cred_type 0
 $ python3 ./cmng.py list /dev/ttyACM0 
 []
 ```
-### Limitations
-The 'write PSK' and 'write certs' convenience operations are incomplete.
 
 ### About
 Most AT commands are represented by a single Python dictionary with 'cmd', 'type', and 'params' keys. The 'cmd' value is arbitrary but always starts with '+' or '%' with the nRF91. The 'type' value can be 'SET', 'READ', or 'TEST'. The 'params' value is a list of Python values of type None, int, str, or (single-nested) lists.
