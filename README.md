@@ -41,7 +41,7 @@ at.nrf9160.SoCError: SoC error: %CMNG list failed: ERROR.
 >>> soc.close()
 ```
 
-There is also a proof-of-concept command line interface for credential management. The features of this interface include the ability to automatically program a pre-built 'at_client' hex file onto the nRF91-DK before opening the serial port as well as programming an application hex file before shutting down.
+There is also a proof-of-concept command line interface for credential management. The features of this interface include the ability to automatically program a pre-built 'at_client' hex file onto the nRF91-DK before opening the serial port as well as programming an application hex file before shutting down. It can also automatically put the SoC into CFUN_MODE_POWER_OFF before deleting or writing credentials if requested.
 ```
 $ cd at
 $ python3 cmng.py --help
