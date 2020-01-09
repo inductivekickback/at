@@ -8,7 +8,7 @@ $ pip3 install --user -r requirements.txt
 ```
 
 ### Usage
-There is not currently a command line interface but it can be used from the REPL:
+The SoC module can be used from the REPL or a custom script:
 
 ```
 $ cd at
@@ -18,6 +18,8 @@ $ python3
 >>> soc = at.SoC("/dev/ttyACM0")
 >>> soc.get_manufacturer_id()
 'Nordic Semiconductor ASA'
+>>> soc.get_imei()
+'352656100159253'
 >>> soc.get_functional_mode()
 0
 >>> soc.set_functional_mode(4)
@@ -25,6 +27,18 @@ $ python3
 4
 >>> soc.list_credentials()
 [[51966, 3, '0303030303030303030303030303030303030303030303030303030303030303'], [51966, 4, '0404040404040404040404040404040404040404040404040404040404040404'], [16842753, 0, '0000000000000000000000000000000000000000000000000000000000000000']]
+>>> soc.read_credential(16842753, 0)
+'-----BEGIN CERTIFICATE-----\nMIIFXjCCBEagAwIBA...NFu0Qg==\n-----END CERTIFICATE-----'
+>>> soc.write_credential(101, 4, 'nrf-12345')
+>>> soc.read_credential(101, 4)
+'nrf-12345'
+>>> soc.delete_credential(101, 4)
+>>> soc.read_credential(101, 4)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/foolsday/workspace/at/at/nrf9160.py", line 163, in read_credential
+    raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+at.nrf9160.SoCError: SoC error: %CMNG list failed: ERROR.
 >>> soc.close()
 ```
 
