@@ -176,8 +176,10 @@ class SoC():
         return "".join(credential).strip()
 
     def write_credential(self, sec_tag, cred_type, content, passwd=None):
-        """Use %CMNG to read a credential. The sec_tag, cred_type, and content parameters must
+        """Use %CMNG to write a credential. The sec_tag, cred_type, and content parameters must
         be specified.
+
+        NOTE: Certificate length seems to be limited to 4077 bytes.
         """
         command = '%CMNG'
         if cred_type == CRED_TYPE_PUBLIC_KEY:
