@@ -59,6 +59,16 @@ class SoC():
         if not self._chat.is_closed():
             self._chat.close()
 
+    def query_modem(self, command):
+        """Request modem the specified command"""
+        cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
+        result, response = self._chat.send_cmd(cmd)
+        if len(response) != 1:
+            raise SoCError('Unexpected response to {}.'.format(command))
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+        return response[0][at.AT_PARAMS_KEY][0].rstrip()
+
     def get_manufacturer_id(self):
         """Use the +CGMI command to read the manufacturer identification as a string."""
         command = '+CGMI'

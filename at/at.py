@@ -93,8 +93,12 @@ def _parse_param(param_str):
     elif param_str[0] == AT_CMD_STRING_IDENT:
         return param_str.strip(AT_CMD_STRING_IDENT)
     else:
-        return int(param_str)
-
+        # It might be a string but not enclosed in quotes
+        try:
+            res = int(param_str)
+        except:
+            res = param_str
+        return res
 
 def _encode_param(param):
     """Convert the param to its corresponding AT string representation."""
@@ -166,7 +170,7 @@ def parse_string(cmd_str):
                 AT_ERROR_KEY:True,
                 AT_PARAMS_KEY:[]}
     elif temp_cmd_str.startswith(AT_STD_PREFX) or temp_cmd_str.startswith(AT_PROP_PREFX):
-        # Response starting with '+<CMD>: <params>' or '+<CMD> ERROR: <params>'
+        # Response starting with '+<CMD>: <params>' or '%<CMD>: <params>'
         response, params = cmd_str.split(AT_RSP_SEP)
         params = _parse_params(params)
         if AT_RSP_ERROR in response:
@@ -194,6 +198,10 @@ def parse_string(cmd_str):
                 cmd, params = stmt.split(AT_CMD_SET_IDENT)
                 result.append({AT_CMD_KEY:cmd.lstrip(AT_CMD_PREFIX),
                                AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:_parse_params(params)})
+            else:
+                # some SET requests actually return data, e.g. AT%XMODEMUUID
+                result.append({AT_CMD_KEY:stmt.lstrip(AT_CMD_PREFIX),
+                               AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:[]})
         if len(result) == 1:
             return result[0]
         else:
@@ -230,7 +238,6 @@ def encode_command(cmd_dicts, result_strs=None):
         result_strs.append(AT_CMD_TEST_IDENT)
     else:
         raise ATError('Unknown command type: {}'.format(cmd_type))
-
     if len(cmd_dicts) == 1:
         return "".join(result_strs)
     else:

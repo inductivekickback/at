@@ -64,7 +64,7 @@ def _add_and_parse_args():
                                      epilog=('WARNING: nrf_cloud relies on credentials '+
                                              'with sec_tag 16842753.'))
 
-    parser.add_argument('operation', choices=('list', 'read', 'write', 'delete'),
+    parser.add_argument('operation', choices=('list', 'read', 'write', 'delete', 'query'),
                         help="operation", type=str)
     parser.add_argument('port', metavar='SERIAL_PORT_DEVICE',
                         help="serial port device to use for AT commands", type=str)
@@ -89,28 +89,37 @@ def _add_and_parse_args():
                         help="program specified hex file to device before finishing")
     parser.add_argument("--power_off", action='store_true',
                         help="put modem in CFUN_MODE_POWER_OFF if necessary")
+    parser.add_argument("-c", "--command", type=str, default=None, metavar="MODEM_COMMAND",
+                        help="request custom information from modem")
 
     args = parser.parse_args()
-    if args.sec_tag is None and args.operation != 'list':
-        parser.print_usage()
-        print("error: sec_tag required for all operations except listing")
-        sys.exit(-1)
-    if args.cred_type is None and args.operation != 'list':
-        parser.print_usage()
-        print("error: cred_type required for all operations except listing")
-        sys.exit(-1)
-    if args.operation == 'write' and not (args.content or args.content_path):
-        parser.print_usage()
-        print("error: content or content_path is required when writing")
-        sys.exit(-1)
-    if args.out_file and args.operation != 'read':
-        parser.print_usage()
-        print("error: out_file is only available when reading credentials")
-        sys.exit(-1)
-    if args.serial_number and not (args.program_hex or args.program_app):
-        parser.print_usage()
-        print("error: serial number is pointless unless programming a hex file")
-        sys.exit(-1)
+    if args.operation != 'query':
+        if args.sec_tag is None and args.operation != 'list':
+            parser.print_usage()
+            print("error: sec_tag required for all operations except listing")
+            sys.exit(-1)
+        if args.cred_type is None and args.operation != 'list':
+            parser.print_usage()
+            print("error: cred_type required for all operations except listing")
+            sys.exit(-1)
+        if args.operation == 'write' and not (args.content or args.content_path):
+            parser.print_usage()
+            print("error: content or content_path is required when writing")
+            sys.exit(-1)
+        if args.out_file and args.operation != 'read':
+            parser.print_usage()
+            print("error: out_file is only available when reading credentials")
+            sys.exit(-1)
+        if args.serial_number and not (args.program_hex or args.program_app):
+            parser.print_usage()
+            print("error: serial number is pointless unless programming a hex file")
+            sys.exit(-1)
+    else:
+        if not args.command:
+            parser.print_usage()
+            print("error: query command has to be specified")
+            sys.exit(-1)
+
     return args
 
 
@@ -153,6 +162,15 @@ def _communicate(args):
     finally:
         if soc:
             soc.close()
+            
+def _get_command(port, command):
+    """Open the serial port and request given command"""
+    soc = None
+    try:
+        soc = at.SoC(port)
+        return soc.query_modem(command)
+    finally:
+        soc.close()
 
 
 def _main():
@@ -161,6 +179,11 @@ def _main():
     nrfjprog_api = None
     nrfjprog_probe = None
     try:
+        if args.command:
+            res = _get_command(args.port, args.command)
+            print(res)
+            sys.exit(0)
+    
         if args.program_hex or args.program_app:
             nrfjprog_api, nrfjprog_probe = _connect_to_jlink(args)
 

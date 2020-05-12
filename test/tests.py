@@ -33,7 +33,9 @@ class TestATParsing(unittest.TestCase):
                   {'cmd':'%XCBAND', 'type':'TEST', 'params':[]}),
                  ('AT%FOO=7,"c2lnbmF0dXJl";+BAR=(1,2,3)',
                   [{'cmd':'%FOO', 'type':'SET', 'params':[7, "c2lnbmF0dXJl"]},
-                   {'cmd':'+BAR', 'type':'SET', 'params':[[1, 2, 3]]}])]
+                   {'cmd':'+BAR', 'type':'SET', 'params':[[1, 2, 3]]}]),
+                 ('AT%XMODEMUUID',
+                  {'cmd':'%XMODEMUUID', 'type':'SET', 'params':[]})]
     TEST_RSPS = [('ERROR',
                   {'response':'ERROR', 'type':'RESPONSE', 'error':True, 'params':[]}),
                  ('OK',
@@ -67,7 +69,10 @@ class TestATParsing(unittest.TestCase):
                     'params':[16842753,
                               0,
                               "000000000000000000000000000000000000000000" +
-                              "0000000000000000000000"]})]
+                              "0000000000000000000000"]}),
+                 ('%XMODEMUUID: 072fa1c7-304e-4dcf-adcc-76a1601c7192',
+                  {'response':'%XMODEMUUID',
+                    'type':'RESPONSE', 'error':False, 'params':["072fa1c7-304e-4dcf-adcc-76a1601c7192"]}),]
 
     def test_command_encoding(self):
         """Encode command dicts and compare them to the original string."""
@@ -80,13 +85,11 @@ class TestATParsing(unittest.TestCase):
         for cmd_str, cmd_dict in self.TEST_CMDS:
             result = at.parse_string(cmd_str)
             self.assertEqual(result, cmd_dict)
-
     def test_responses(self):
         """Iterate through sample response strings."""
         for cmd_str, params in self.TEST_RSPS:
             result = at.parse_string(cmd_str)
             self.assertEqual(result, params)
-
 
 if __name__ == '__main__':
     unittest.main()
