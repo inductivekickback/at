@@ -162,7 +162,7 @@ def _communicate(args):
     finally:
         if soc:
             soc.close()
-            
+
 def _get_command(port, command):
     """Open the serial port and request given command"""
     soc = None
@@ -183,7 +183,7 @@ def _main():
             res = _get_command(args.port, args.command)
             print(res)
             sys.exit(0)
-    
+
         if args.program_hex or args.program_app:
             nrfjprog_api, nrfjprog_probe = _connect_to_jlink(args)
 
