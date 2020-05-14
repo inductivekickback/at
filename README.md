@@ -49,13 +49,13 @@ usage: cmng [-h] [--sec_tag SECURITY_TAG] [--cred_type CREDENTIAL_TYPE]
             [--passwd PRIVATE_KEY_PASSWD] [-o PATH_TO_OUT_FILE]
             [--content CONTENT | --content_path PATH_TO_CONTENT]
             [-s JLINK_SERIAL_NUMBER] [-x] [--program_app PATH_TO_APP_HEX_FILE]
-            [--power_off]
-            {list,read,write,delete} SERIAL_PORT_DEVICE
+            [--power_off] [-c MODEM_COMMAND]
+            {list,read,write,delete,query} SERIAL_PORT_DEVICE
 
 A command line interface for managing nRF91 credentials.
 
 positional arguments:
-  {list,read,write,delete}
+  {list,read,write,delete,query}
                         operation
   SERIAL_PORT_DEVICE    serial port device to use for AT commands
 
@@ -80,6 +80,8 @@ optional arguments:
   --program_app PATH_TO_APP_HEX_FILE
                         program specified hex file to device before finishing
   --power_off           put modem in CFUN_MODE_POWER_OFF if necessary
+  -c MODEM_COMMAND, --command MODEM_COMMAND
+                        request custom information from modem
 
 WARNING: nrf_cloud relies on credentials with sec_tag 16842753.
 ```
