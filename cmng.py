@@ -72,7 +72,7 @@ def _add_and_parse_args():
                         help="specify sec_tag [0, 2147483647]")
     parser.add_argument("--cred_type", type=int, metavar="CREDENTIAL_TYPE",
                         help="specify cred_type [0, 5]")
-    parser.add_argument("--passwd", type=str, default=None, metavar="PRIVATE_KEY_PASSWD",
+    parser.add_argument("--passwd", type=str, default=None, metavar="PRIVATE_KEY_PASSWD", required=False,
                         help="specify private key password")
     parser.add_argument("-o", "--out_file", type=str, metavar="PATH_TO_OUT_FILE",
                         help="write output from read operation to file instead of stdout.")

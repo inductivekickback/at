@@ -35,7 +35,9 @@ class TestATParsing(unittest.TestCase):
                   [{'cmd':'%FOO', 'type':'SET', 'params':[7, "c2lnbmF0dXJl"]},
                    {'cmd':'+BAR', 'type':'SET', 'params':[[1, 2, 3]]}]),
                  ('AT%XMODEMUUID',
-                  {'cmd':'%XMODEMUUID', 'type':'SET', 'params':[]})]
+                  {'cmd':'%XMODEMUUID', 'type':'SET', 'params':[]}),
+                 ('AT%XVBAT',
+                  {'cmd':'%XVBAT', 'type':'SET', 'params':[]})]
     TEST_RSPS = [('ERROR',
                   {'response':'ERROR', 'type':'RESPONSE', 'error':True, 'params':[]}),
                  ('OK',
@@ -73,7 +75,11 @@ class TestATParsing(unittest.TestCase):
                  ('%XMODEMUUID: 072fa1c7-304e-4dcf-adcc-76a1601c7192',
                   {'response':'%XMODEMUUID',
                    'type':'RESPONSE', 'error':False,
-                   'params':["072fa1c7-304e-4dcf-adcc-76a1601c7192"]}),]
+                   'params':["072fa1c7-304e-4dcf-adcc-76a1601c7192"]}),
+                 ('%XVBAT: 1234',
+                  {'response':'%XVBAT',
+                   'type':'RESPONSE', 'error':False,
+                   'params':[1234]})]
 
     def test_command_encoding(self):
         """Encode command dicts and compare them to the original string."""
