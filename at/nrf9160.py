@@ -67,7 +67,7 @@ class SoC():
             raise SoCError('Unexpected response to {}.'.format(command))
         if result[at.AT_ERROR_KEY]:
             raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
-        return response[0][at.AT_PARAMS_KEY][0].rstrip()
+        return response[0][at.AT_PARAMS_KEY][0]
 
     def get_manufacturer_id(self):
         """Use the +CGMI command to read the manufacturer identification as a string."""
