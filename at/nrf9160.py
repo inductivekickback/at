@@ -194,10 +194,7 @@ class SoC():
         command = '%CMNG'
         if cred_type == CRED_TYPE_PUBLIC_KEY:
             raise SoCError('Public keys can only be deleted.')
-        if passwd is None:
-            if cred_type == CRED_TYPE_CLIENT_PRIVATE_KEY:
-                raise SoCError('passwd must be provided when writing encrypted private key.')
-        elif cred_type != CRED_TYPE_CLIENT_PRIVATE_KEY:
+        if not passwd is None and cred_type != CRED_TYPE_CLIENT_PRIVATE_KEY:
             raise SoCError('passwd is not used unless writing encrypted private key.')
         if self.get_functional_mode() == CFUN_MODE_NORMAL:
             raise SoCError('Writing credentials is not possible while modem is active.')
