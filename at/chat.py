@@ -15,7 +15,7 @@ class ChatError(Exception):
     def __init__(self, error_str=None):
         """Constructs a new object and sets the error."""
         if error_str:
-            self.err_str = 'Chat error: {}'.format(error_str)
+            self.err_str = f'Chat error: {error_str}'
         else:
             self.err_str = 'Chat error'
         Exception.__init__(self, self.err_str)
@@ -52,15 +52,13 @@ class Chat():
             if self._rx_q.empty():
                 self.close()
                 raise ChatError('Thread closed unexpectedly.')
-            else:
-                self._raise_thread_errors()
+            self._raise_thread_errors()
         if not block and self._rx_q.empty():
             return None
         item = self._rx_q.get(block, timeout_s)
         if isinstance(item, str):
             return item
-        else:
-            raise ChatError(str(item))
+        raise ChatError(str(item))
 
     def _write(self, seq):
         """Write the string or bytes seq to the serial port."""
@@ -70,8 +68,7 @@ class Chat():
             if self._rx_q.empty():
                 self.close()
                 raise ChatError('Thread closed unexpectedly.')
-            else:
-                self._raise_thread_errors()
+            self._raise_thread_errors()
         self._tx_q.put(seq)
 
     def send_cmd(self, cmd, timeout_s=5):
@@ -91,15 +88,14 @@ class Chat():
         while True:
             try:
                 line = self._read(True, timeout_s)
-            except queue.Empty:
-                raise ChatError('Command timed out ({} seconds).'.format(timeout_s))
+            except queue.Empty as exc:
+                raise ChatError(f'Command timed out ({timeout_s} seconds).') from exc
             if line:
                 res = at.parse_string(line)
                 if res[at.AT_TYPE_KEY] == at.AT_TYPE_VALUE_RESPONSE:
                     if res[at.AT_RESPONSE_KEY] == at.AT_RSP_OK or res[at.AT_ERROR_KEY]:
                         return (res, responses)
-                    else:
-                        responses.append(res)
+                    responses.append(res)
 
     def close(self):
         """Close the serial port."""
@@ -123,7 +119,7 @@ class ChatThread(threading.Thread):
 
     def __init__(self, rx_queue, tx_queue, port, baudrate=DEFAULT_BAUDRATE):
         """Create a new object but do not start the thread."""
-        super(ChatThread, self).__init__()
+        super().__init__()
         self.daemon = True
         self._rx_q = rx_queue
         self._tx_q = tx_queue
@@ -137,13 +133,10 @@ class ChatThread(threading.Thread):
         if isinstance(seq, str):
             if seq.endswith(self.CR_LF_STR):
                 return seq.encode()
-            else:
-                return "".join((seq, self.CR_LF_STR)).encode()
-        else:
-            if seq.endswith(self.CR_LF_BYTES):
-                return seq
-            else:
-                return b''.join((seq, self.CR_LF_BYTES))
+            return "".join((seq, self.CR_LF_STR)).encode()
+        if seq.endswith(self.CR_LF_BYTES):
+            return seq
+        return b''.join((seq, self.CR_LF_BYTES))
 
     def run(self):
         """Interact with the serial port until the semaphore is set.

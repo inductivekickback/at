@@ -80,7 +80,7 @@ class ATError(Exception):
     def __init__(self, error_str=None):
         """Constructs a new object and sets the error."""
         if error_str:
-            self.err_str = 'AT error: {}'.format(error_str)
+            self.err_str = f'AT error: {error_str}'
         else:
             self.err_str = 'AT error'
         Exception.__init__(self, self.err_str)
@@ -90,24 +90,23 @@ def _parse_param(param_str):
     """Convert the param_str into its corresponding Python type."""
     if not param_str:
         return None
-    elif param_str[0] == AT_CMD_STRING_IDENT:
+    if param_str[0] == AT_CMD_STRING_IDENT:
         return param_str.strip(AT_CMD_STRING_IDENT)
-    else:
-        # It might be a string but not enclosed in quotes
-        try:
-            res = int(param_str)
-        except ValueError:
-            res = param_str
-        return res
+    # It might be a string but not enclosed in quotes
+    try:
+        res = int(param_str)
+    except ValueError:
+        res = param_str
+    return res
+
 
 def _encode_param(param):
     """Convert the param to its corresponding AT string representation."""
     if param is None:
         return ' '
-    elif isinstance(param, str):
+    if isinstance(param, str):
         return "".join((AT_CMD_STRING_IDENT, param, AT_CMD_STRING_IDENT))
-    else:
-        return str(param)
+    return str(param)
 
 
 def _parse_params(params_str):
@@ -121,9 +120,8 @@ def _parse_params(params_str):
         if param_str.startswith(AT_CMD_ARRAY_START):
             if array is not None:
                 raise ATError("Nested array encountered")
-            else:
-                array = []
-                param_str = param_str[1:]
+            array = []
+            param_str = param_str[1:]
         if param_str.endswith(AT_CMD_ARRAY_END):
             end_of_array = True
             param_str = param_str[:-1]
@@ -147,7 +145,8 @@ def _encode_params(params_seq):
         else:
             seq_str = _encode_params(param)
             result_strs.append(AT_CMD_ARRAY_START + seq_str + AT_CMD_ARRAY_END)
-    return AT_PARAM_SEP.join(result_strs)
+    # Use rstrip to nuke trailing commas if they don't add anything.
+    return AT_PARAM_SEP.join(result_strs).rstrip(', ')
 
 
 def parse_string(cmd_str):
@@ -162,15 +161,21 @@ def parse_string(cmd_str):
                 AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
                 AT_ERROR_KEY:False,
                 AT_PARAMS_KEY:[]}
-    elif temp_cmd_str.startswith(AT_RSP_ERROR):
+    if temp_cmd_str.startswith(AT_RSP_ERROR):
         if len(temp_cmd_str) != len(AT_RSP_ERROR):
             raise ATError('Unexpected trailing data after ERROR')
         return {AT_RESPONSE_KEY:AT_RSP_ERROR,
                 AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
                 AT_ERROR_KEY:True,
                 AT_PARAMS_KEY:[]}
-    elif temp_cmd_str.startswith(AT_STD_PREFX) or temp_cmd_str.startswith(AT_PROP_PREFX):
+    if temp_cmd_str.startswith(AT_STD_PREFX) or temp_cmd_str.startswith(AT_PROP_PREFX):
         # Response starting with '+<CMD>: <params>' or '%<CMD>: <params>'
+        # Can also be %<CMD>OK
+        if not AT_RSP_SEP in cmd_str:
+            return {AT_RESPONSE_KEY:AT_RSP_OK,
+                    AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+                    AT_ERROR_KEY:False,
+                    AT_PARAMS_KEY:[]}
         response, params = cmd_str.split(AT_RSP_SEP)
         params = _parse_params(params)
         if AT_RSP_ERROR in response:
@@ -178,18 +183,17 @@ def parse_string(cmd_str):
                     AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
                     AT_ERROR_KEY:True,
                     AT_PARAMS_KEY:params}
-        else:
-            return {AT_RESPONSE_KEY:response,
-                    AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
-                    AT_ERROR_KEY:False,
-                    AT_PARAMS_KEY:params}
-    elif cmd_str.endswith(AT_CMD_TEST_IDENT):
+        return {AT_RESPONSE_KEY:response,
+                AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+                AT_ERROR_KEY:False,
+                AT_PARAMS_KEY:params}
+    if cmd_str.endswith(AT_CMD_TEST_IDENT):
         return {AT_CMD_KEY:cmd_str.upper().lstrip(AT_CMD_PREFIX).rstrip(AT_CMD_TEST_IDENT),
                 AT_TYPE_KEY:AT_TYPE_VALUE_TEST, AT_PARAMS_KEY:[]}
-    elif cmd_str.endswith(AT_CMD_READ_IDENT):
+    if cmd_str.endswith(AT_CMD_READ_IDENT):
         return {AT_CMD_KEY:cmd_str.upper().lstrip(AT_CMD_PREFIX).rstrip(AT_CMD_TEST_IDENT),
                 AT_TYPE_KEY:AT_TYPE_VALUE_READ, AT_PARAMS_KEY:[]}
-    elif temp_cmd_str.startswith(AT_CMD_PREFIX):
+    if temp_cmd_str.startswith(AT_CMD_PREFIX):
         # Could be a regular or compound command.
         result = []
         stmts = cmd_str.split(AT_PARAM_CONCAT_SEP)
@@ -204,19 +208,18 @@ def parse_string(cmd_str):
                                AT_TYPE_KEY:AT_TYPE_VALUE_SET, AT_PARAMS_KEY:[]})
         if len(result) == 1:
             return result[0]
-        else:
-            return result
-    else:
-        if cmd_str.strip() == AT_CMD_STRING_IDENT:
-            # Cert responses end with a line containing a single ".
-            cmd_str = ''
-        elif cmd_str.endswith(RESPONSE_STR_DANGLING_QUOTE):
-            # It's also possible for multi-line response strings to end with an orphan ".
-            cmd_str = cmd_str.strip(RESPONSE_STR_DANGLING_QUOTE)
-        return{AT_RESPONSE_KEY:None,
-               AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
-               AT_ERROR_KEY:False,
-               AT_PARAMS_KEY:[cmd_str]}
+        return result
+
+    if cmd_str.strip() == AT_CMD_STRING_IDENT:
+        # Cert responses end with a line containing a single ".
+        cmd_str = ''
+    elif cmd_str.endswith(RESPONSE_STR_DANGLING_QUOTE):
+        # It's also possible for multi-line response strings to end with an orphan ".
+        cmd_str = cmd_str.strip(RESPONSE_STR_DANGLING_QUOTE)
+    return{AT_RESPONSE_KEY:None,
+           AT_TYPE_KEY:AT_TYPE_VALUE_RESPONSE,
+           AT_ERROR_KEY:False,
+           AT_PARAMS_KEY:[cmd_str]}
 
 
 def encode_command(cmd_dicts, result_strs=None):
@@ -237,9 +240,8 @@ def encode_command(cmd_dicts, result_strs=None):
     elif cmd_type == AT_TYPE_VALUE_TEST:
         result_strs.append(AT_CMD_TEST_IDENT)
     else:
-        raise ATError('Unknown command type: {}'.format(cmd_type))
+        raise ATError(f'Unknown command type: {cmd_type}')
     if len(cmd_dicts) == 1:
         return "".join(result_strs)
-    else:
-        result_strs.append(AT_PARAM_CONCAT_SEP)
-        return "".join(encode_command(cmd_dicts[1:], result_strs))
+    result_strs.append(AT_PARAM_CONCAT_SEP)
+    return "".join(encode_command(cmd_dicts[1:], result_strs))

@@ -6,8 +6,8 @@ import os
 import argparse
 import time
 
-import at
 from pynrfjprog import HighLevel
+import at
 
 
 FW_STARTUP_DELAY_S = 3
@@ -37,7 +37,7 @@ def _connect_to_jlink(args):
         if args.serial_number in connected_serials:
             connected_serials = [args.serial_number]
         else:
-            print("error: serial_number not found ({})".format(args.serial_number))
+            print(f"error: serial_number not found ({args.serial_number})")
             _close_and_exit(api, -1)
     if not connected_serials:
         print("error: no debug probes found")
@@ -72,8 +72,8 @@ def _add_and_parse_args():
                         help="specify sec_tag [0, 2147483647]")
     parser.add_argument("--cred_type", type=int, metavar="CREDENTIAL_TYPE",
                         help="specify cred_type [0, 5]")
-    parser.add_argument("--passwd", type=str, default=None, metavar="PRIVATE_KEY_PASSWD", required=False,
-                        help="specify private key password")
+    parser.add_argument("--passwd", type=str, default=None, metavar="PRIVATE_KEY_PASSWD",
+                        required=False, help="specify private key password")
     parser.add_argument("-o", "--out_file", type=str, metavar="PATH_TO_OUT_FILE",
                         help="write output from read operation to file instead of stdout.")
     group = parser.add_mutually_exclusive_group()
@@ -135,7 +135,7 @@ def _communicate(args):
     soc = None
     try:
         soc = at.SoC(args.port)
-        if args.power_off and (args.operation == 'delete' or args.operation == 'write'):
+        if args.power_off and args.operation in ('delete', 'write'):
             _power_off_if_necessary(soc)
         if args.operation == 'list':
             result = soc.list_credentials(args.sec_tag, args.cred_type)

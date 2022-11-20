@@ -28,11 +28,49 @@ CRED_TYPE_CLIENT_PRIVATE_KEY = 2
 CRED_TYPE_PSK = 3 # ASCII string in hex format
 CRED_TYPE_PSK_IDENTITY = 4
 CRED_TYPE_PUBLIC_KEY = 5
+CRED_TYPE_ENDORSEMENT_PRIVATE_KEY = 8
+
+CRED_RESPONSE_CONTENT_CSR = 0 # Mandatory when generating CRED_TYPE_CLIENT_PRIVATE_KEY
+CRED_RESPONSE_CONTENT_PUBLIC_KEY = 1
 
 CME_ERROR_NOT_FOUND = 513
 CME_ERROR_NO_ACCESS = 514
 CME_ERROR_MEMORY_FULL = 515
 CME_ERROR_NOT_ALLOWED_IN_ACTIVE_STATE = 518
+CME_ERROR_ALREADY_EXISTS = 519
+CME_ERROR_KEY_GEN_FAILED = 523
+CME_ERROR_NOT_ALLOWED = 528 # Not allowed in Power off warning state
+
+JWT_ALG_ES256 = 0
+
+CSR_ATTRIBUTES = [ "commonName", # (CN)
+    "locality", # (L)
+    "stateOrProvinceName", # (ST)
+    "organizationName", # (O)
+    "organizationalUnitName", # (OU)
+    "countryName", # (C)
+    "domainComponent", # (DC)
+    "surName", # (SN)
+    "givenName", # (GN)
+    "emailAddress", # (R)
+    "serialNumber",
+    "postalAddress",
+    "postalCode",
+    "dnQualifier",
+    "title",
+    "initials",
+    "pseudonym",
+    "generationQualifier" ]
+
+CSR_KEY_USAGE_BIT_DIG_SIG = (1<<0) # digitalSignature (the first digit)
+CSR_KEY_USAGE_BIT_NON_REPUD = (1<<1) # nonRepudiation
+CSR_KEY_USAGE_BIT_KEY_ENCIPH = (1<<2) # keyEncipherment
+CSR_KEY_USAGE_BIT_DATA_ENCIPH = (1<<3) # dataEncipherment
+CSR_KEY_USAGE_BIT_KEY_AGREE = (1<<4) # keyAgreement
+CSR_KEY_USAGE_BIT_KEY_CERT_SIGN = (1<<5) # keyCertSign
+CSR_KEY_USAGE_BIT_CRL_SIGN = (1<<6) # cRLSign
+CSR_KEY_USAGE_BIT_ENCIPH_ONLY = (1<<7) # encipherOnly
+CSR_KEY_USAGE_BIT_DECIPH_ONLY = (1<<8) # decipherOnly (the last digit)
 
 
 class SoCError(Exception):
@@ -41,7 +79,7 @@ class SoCError(Exception):
     def __init__(self, error_str=None):
         """Constructs a new object and sets the error."""
         if error_str:
-            self.err_str = 'SoC error: {}'.format(error_str)
+            self.err_str = f'SoC error: {error_str}.'
         else:
             self.err_str = 'SoC error'
         Exception.__init__(self, self.err_str)
@@ -64,9 +102,9 @@ class SoC():
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
-            raise SoCError('Unexpected response to {}.'.format(command))
+            raise SoCError(f'Unexpected response to {command}.')
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} failed: {result[at.AT_RESPONSE_KEY]}.')
         return response[0][at.AT_PARAMS_KEY][0]
 
     def get_manufacturer_id(self):
@@ -75,9 +113,9 @@ class SoC():
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
-            raise SoCError('Unexpected response to {}.'.format(command))
+            raise SoCError(f'Unexpected response to {command}.')
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} failed: {result[at.AT_RESPONSE_KEY]}.')
         return response[0][at.AT_PARAMS_KEY][0].rstrip()
 
     def _cgsn(self, param):
@@ -88,9 +126,9 @@ class SoC():
                at.AT_PARAMS_KEY:[param]}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
-            raise SoCError('Unexpected response to {}.'.format(command))
+            raise SoCError(f'Unexpected response to {command}.')
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} failed: {result[at.AT_RESPONSE_KEY]}.')
         return response[0][at.AT_PARAMS_KEY][0].rstrip()
 
     def get_serial_number(self):
@@ -115,9 +153,9 @@ class SoC():
         cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_READ}
         result, response = self._chat.send_cmd(cmd)
         if len(response) != 1:
-            raise SoCError('Unexpected response to {}.'.format(command))
+            raise SoCError(f'Unexpected response to {command}.')
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} list failed: {result[at.AT_RESPONSE_KEY]}.')
         return response[0][at.AT_PARAMS_KEY][0]
 
     def set_functional_mode(self, mode):
@@ -136,7 +174,7 @@ class SoC():
                at.AT_PARAMS_KEY:[mode]}
         result, _ = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} list failed: {result[at.AT_RESPONSE_KEY]}.')
 
     def list_credentials(self, sec_tag=None, cred_type=None):
         """Use %CMNG to return a list of credentials. Each credential is in the form [sec_tag,
@@ -151,7 +189,7 @@ class SoC():
                at.AT_PARAMS_KEY:[OPCODE_LIST, sec_tag, cred_type, None, None]}
         result, response = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} list failed: {result[at.AT_RESPONSE_KEY]}.')
         return [x[at.AT_PARAMS_KEY] for x in response if x[at.AT_RESPONSE_KEY] == command]
 
     def read_credential(self, sec_tag, cred_type):
@@ -161,23 +199,21 @@ class SoC():
         command = '%CMNG'
         if cred_type == CRED_TYPE_PUBLIC_KEY:
             raise SoCError('Public keys can only be deleted.')
-        if (cred_type == CRED_TYPE_CLIENT_CERT or
-                cred_type == CRED_TYPE_CLIENT_PRIVATE_KEY or
-                cred_type == CRED_TYPE_PSK):
+        if cred_type in (CRED_TYPE_CLIENT_CERT, CRED_TYPE_CLIENT_PRIVATE_KEY, CRED_TYPE_PSK):
             raise SoCError('Reading of cred_types 1, 2, and 3 is not supported.')
         cmd = {at.AT_CMD_KEY:command,
                at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
                at.AT_PARAMS_KEY:[OPCODE_READ, sec_tag, cred_type]}
         result, response = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} list failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} list failed: {result[at.AT_RESPONSE_KEY]}.')
         credential = []
         cmd_echo = response.pop(0)
         if cmd_echo[at.AT_RESPONSE_KEY] != command:
-            raise SoCError('Failed to parse output of {} read.'.format(command))
+            raise SoCError(f'Failed to parse output of {command} read.')
         verify_sec_tag, verify_cred_type, _, content = cmd_echo[at.AT_PARAMS_KEY]
         if verify_sec_tag != sec_tag or verify_cred_type != cred_type:
-            raise SoCError('Failed to verify credential in output of {} read.'.format(command))
+            raise SoCError(f'Failed to verify credential in output of {command} read.')
         credential.append(content)
         credential.append('\n')
         for line in response:
@@ -203,7 +239,7 @@ class SoC():
                at.AT_PARAMS_KEY:[OPCODE_WRITE, sec_tag, cred_type, content, passwd]}
         result, _ = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} write failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} write failed: {result[at.AT_RESPONSE_KEY]}.')
 
     def delete_credential(self, sec_tag, cred_type):
         """Use %CMNG to delete a credential. The sec_tag and cred_type parameters must
@@ -217,4 +253,106 @@ class SoC():
                at.AT_PARAMS_KEY:[OPCODE_DELETE, sec_tag, cred_type]}
         result, _ = self._chat.send_cmd(cmd)
         if result[at.AT_ERROR_KEY]:
-            raise SoCError('{} delete failed: {}.'.format(command, result[at.AT_RESPONSE_KEY]))
+            raise SoCError(f'{command} delete failed: {result[at.AT_RESPONSE_KEY]}.')
+
+    def get_attestation_token(self):
+        """The response contains a device identity attestation message including the device type,
+        device UUID, and COSE authentication metadata joined by a dot "." and coded to Base64url
+        format.
+
+        NOTE: Can also return None
+        """
+        command = '%ATTESTTOKEN'
+        cmd = {at.AT_CMD_KEY:command, at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET}
+        result, response = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            msg = '{} get attestation token failed: ' + '{}.'
+            raise SoCError(msg.format(command, result[at.AT_RESPONSE_KEY]))
+        if response:
+            return response[0][at.AT_PARAMS_KEY][0].rstrip()
+        return None
+
+    def generate_credential(self, sec_tag, key_type, response_content=None,
+                            attributes=None, key_usage=None):
+        """This command creates keys for different purposes:
+         - Client private key and certificate signing request (CSR)
+         - Client private key and public key
+         - Device Endorsement key pair
+        """
+        command = '%KEYGEN'
+        if self.get_functional_mode() == CFUN_MODE_NORMAL:
+            raise SoCError('Generating credentials is not possible while modem is active.')
+        if response_content == CRED_RESPONSE_CONTENT_CSR:
+            if key_type != CRED_TYPE_CLIENT_PRIVATE_KEY:
+                raise SoCError('Generating credentials failed because key_type ' +
+                    f'{key_type} is not valid with response_content {response_content}.')
+        elif response_content == CRED_RESPONSE_CONTENT_PUBLIC_KEY:
+            if attributes or key_usage:
+                raise SoCError('Generating credentials failed because attributes and ' +
+                    'key_usage are only allowed when response_content is set to 0.')
+            if not key_type in (CRED_TYPE_CLIENT_PRIVATE_KEY, CRED_TYPE_ENDORSEMENT_PRIVATE_KEY):
+                raise SoCError('Generating credentials failed because key_type must be set to ' +
+                    '2 or 8 when response_content is set to 1.')
+        elif response_content:
+            raise SoCError('Generating credentials failed because response_content ' +
+                f'is not used for key_type {key_type}.')
+        elif not response_content:
+            if key_type == CRED_TYPE_CLIENT_PRIVATE_KEY:
+                raise SoCError('Generating credentials failed because ' +
+                    'response_content must be set to 0 when key_type is set to 2.')
+        if key_usage:
+            if isinstance(key_usage, int):
+                key_usage = str(bin(key_usage))[2:]
+            if not isinstance(key_usage, str):
+                raise SoCError('Generating credentials failed due to unknown key_usage type.')
+            if len(key_usage) != 9:
+                raise SoCError('Generating credentials failed due to invalid ' +
+                    f'key_usage str len ({len(key_usage)}).')
+            try:
+                int(key_usage, 2)
+            except ValueError as err:
+                raise SoCError("Generating credentials failed due to " +
+                    "key_usage not being a valid binary str.") from err
+            if key_usage[8] != '0':
+                raise SoCError("Generating credentials failed " +
+                    "because the decipherOnly digit is set.")
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[sec_tag, key_type, response_content, attributes, key_usage]}
+        result, response = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError(f'{command} write failed: {result[at.AT_RESPONSE_KEY]}.')
+        return response[0][at.AT_PARAMS_KEY][0]
+
+    def generate_jwt(self, exp_delta=0, subject=None, audience=None,
+                     sec_tag=None, key_type=None, alg=JWT_ALG_ES256):
+        """This command creates a JSON Web Token (JWT). The following params are accepted:
+         - alg - JWT signing algorithm, currently only ES256 (0) is supported
+
+         - exp_delta - The number of seconds before expiry.
+                       Requires the modem to have a correct date and time
+
+         - subject - The "sub" (subject) claim for the JWT as defined in RFC 7519 4.1.2
+
+         - audience - The "aud" (audience) claim for the JWT as defined in RFC 7519 4.1.3
+                      NOTE: array not supported
+
+         - sec_tag - Identifies the key to be used for signing the JWT
+
+         - key_type - Type of the key to be used for signing the JWT
+        """
+        # %JWT=[<alg>],[<exp_delta>],[<subject>],[<audience>][,<sec_tag>,<key_type>]
+        command = '%JWT'
+        if key_type and not sec_tag:
+            raise SoCError("Generating JWT failed because a key_type was " +
+                "specified without a sec_tag.")
+        if sec_tag and not key_type:
+            raise SoCError("Generating JWT failed because a sec_tag was " +
+                "specified without a key_type.")
+        cmd = {at.AT_CMD_KEY:command,
+               at.AT_TYPE_KEY:at.AT_TYPE_VALUE_SET,
+               at.AT_PARAMS_KEY:[alg, exp_delta, subject, audience, sec_tag, key_type]}
+        result, response = self._chat.send_cmd(cmd)
+        if result[at.AT_ERROR_KEY]:
+            raise SoCError(f'{command} write failed: {result[at.AT_RESPONSE_KEY]}.')
+        return response[0][at.AT_PARAMS_KEY][0]
