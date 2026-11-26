@@ -79,7 +79,11 @@ class TestATParsing(unittest.TestCase):
                  ('%XVBAT: 1234',
                   {'response':'%XVBAT',
                    'type':'RESPONSE', 'error':False,
-                   'params':[1234]})]
+                   'params':[1234]}),
+                 ('%XCOUNTRYDATA: "5,525,8,0"',
+                  {'response':'%XCOUNTRYDATA',
+                   'type':'RESPONSE', 'error':False,
+                   'params':['5,525,8,0']})]
 
     def test_command_encoding(self):
         """Encode command dicts and compare them to the original string."""
@@ -97,6 +101,42 @@ class TestATParsing(unittest.TestCase):
         for cmd_str, params in self.TEST_RSPS:
             result = at.parse_string(cmd_str)
             self.assertEqual(result, params)
+
+
+class TestModemQuery(unittest.TestCase):
+    """Verify generic modem queries preserve complete parameter responses."""
+
+    @staticmethod
+    def _query_response(params):
+        soc = at.SoC.__new__(at.SoC)
+
+        class FakeChat:
+            @staticmethod
+            def send_cmd(_cmd):
+                result = {
+                    at.AT_RESPONSE_KEY: at.AT_RSP_OK,
+                    at.AT_ERROR_KEY: False,
+                }
+                response = [{
+                    at.AT_RESPONSE_KEY: '%XCOUNTRYDATA',
+                    at.AT_PARAMS_KEY: params,
+                }]
+                return result, response
+
+        soc._chat = FakeChat()
+        return soc.query_modem('%XCOUNTRYDATA?')
+
+    def test_single_parameter_query_remains_unchanged(self):
+        self.assertEqual(self._query_response(['8945730000000000000']),
+                         '8945730000000000000')
+
+    def test_multi_parameter_query_returns_all_values(self):
+        self.assertEqual(self._query_response([5, 525, 8, 0]), '5,525,8,0')
+
+    def test_quoted_country_data_query_removes_wrapping_quotes(self):
+        parsed = at.parse_string('%XCOUNTRYDATA: "5,525,8,0"')
+        self.assertEqual(self._query_response(parsed[at.AT_PARAMS_KEY]),
+                         '5,525,8,0')
 
 if __name__ == '__main__':
     unittest.main()

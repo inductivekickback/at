@@ -114,7 +114,16 @@ def _parse_params(params_str):
     result = []
     array = None
     end_of_array = False
-    params = params_str.split(AT_PARAM_SEP)
+    params = []
+    start = 0
+    inside_string = False
+    for index, char in enumerate(params_str):
+        if char == AT_CMD_STRING_IDENT:
+            inside_string = not inside_string
+        elif char == AT_PARAM_SEP and not inside_string:
+            params.append(params_str[start:index])
+            start = index + 1
+    params.append(params_str[start:])
     for param in params:
         param_str = param.strip()
         if param_str.startswith(AT_CMD_ARRAY_START):
